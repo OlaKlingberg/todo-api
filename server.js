@@ -19,7 +19,7 @@ app.get('/todos', function (req, res) {
     var where = {};
 
     if ( query.hasOwnProperty('completed') ) {
-        if (query.completed === 'true') {
+        if ( query.completed === 'true' ) {
             where.completed = true;
         } else {
             where.completed = false;
@@ -45,9 +45,9 @@ app.get('/todos', function (req, res) {
 
     db.todo.findAll({
         where: where
-    }).then(function(todos) {
+    }).then(function (todos) {
         res.json(todos);
-    }, function() {
+    }, function () {
         res.status(500).send();
     });
 
@@ -58,14 +58,14 @@ app.get('/todos/:id', function (req, res) {
     var todoId = parseInt(req.params.id, 10);
 
     db.todo.findById(todoId)
-        .then(function(todo) {
-            if (!!todo) {
+        .then(function (todo) {
+            if ( !!todo ) {
                 res.json(todo.toJSON());
             } else {
                 res.status(404).send("There is no todo with that id.");
             }
         })
-        .catch(function(e) {
+        .catch(function (e) {
             res.status(500).send();
         });
 });
@@ -73,9 +73,9 @@ app.get('/todos/:id', function (req, res) {
 app.post('/todos', function (req, res) {
     var body = _.pick(req.body, 'description', 'completed');
 
-    db.todo.create(body).then(function(todo) {
+    db.todo.create(body).then(function (todo) {
         res.send(todo.toJSON());
-    }).catch(function(e) {
+    }).catch(function (e) {
         res.status(400).json(e);
     });
 
@@ -84,14 +84,35 @@ app.post('/todos', function (req, res) {
 
 app.delete('/todos/:id', function (req, res) {
     var todoId = parseInt(req.params.id, 10);
-    var matchedTodo = _.findWhere(todos, {id: todoId});
 
-    if ( !matchedTodo ) {
-        res.status(404).json({"error": 'No todo found with that id'});
-    } else {
-        todos = _.without(todos, matchedTodo);
-        res.json(matchedTodo);
-    }
+    db.todo.destroy({
+        where: {
+            id: todoId
+        }
+    }).then(function (rowsDeleted) {
+        if ( rowsDeleted === 0 ) {
+            res.status(404).json({
+                error: 'No todo with id'
+            })
+        } else {
+            res.status(204).send();
+        }
+    }, function () {
+        res.status(500).send();
+    });
+
+    // My solution, which is probably not as good.
+    // db.todo.findById(todoId)
+    //     .then(function(todo) {
+    //         if (todo) {
+    //             todo.destroy();
+    //             res.send('Todo deleted');
+    //         } else {
+    //             res.status(404).send("No todo with that id found.");
+    //         }
+    //     }, function(e) {
+    //         res.status(500).send();
+    //     });
 });
 
 
@@ -121,7 +142,7 @@ app.put('/todos/:id', function (req, res) {
 
 });
 
-db.sequelize.sync().then(function() {
+db.sequelize.sync().then(function () {
     app.listen(PORT, function () {
         console.log("Express listening on port " + PORT + "!");
     });
